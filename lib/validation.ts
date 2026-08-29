@@ -15,9 +15,23 @@ export type InquiryInput = {
 
 export class ValidationError extends Error {}
 
-function requireString(value: unknown, field: string): string {
+const MAX_LENGTHS = {
+  name: 100,
+  contact: 191,
+  subject: 191,
+  content: 5000,
+} as const;
+
+function requireString(
+  value: unknown,
+  field: string,
+  maxLength?: number,
+): string {
   if (typeof value !== "string" || value.trim() === "") {
     throw new ValidationError(`${field}は必須です。`);
+  }
+  if (maxLength !== undefined && value.length > maxLength) {
+    throw new ValidationError(`${field}は${maxLength}文字以内で入力してください。`);
   }
   return value;
 }
@@ -57,10 +71,10 @@ export function parseInquiryInput(body: unknown): InquiryInput {
   }
   const data = body as Record<string, unknown>;
 
-  const name = requireString(data.name, "氏名");
-  const contact = requireString(data.contact, "連絡先");
-  const subject = requireString(data.subject, "件名");
-  const content = requireString(data.content, "内容");
+  const name = requireString(data.name, "氏名", MAX_LENGTHS.name);
+  const contact = requireString(data.contact, "連絡先", MAX_LENGTHS.contact);
+  const subject = requireString(data.subject, "件名", MAX_LENGTHS.subject);
+  const content = requireString(data.content, "内容", MAX_LENGTHS.content);
   const category = parseCategory(data.category ?? InquiryCategory.OTHER);
   const status = parseStatus(data.status ?? InquiryStatus.UNCONTACTED);
   const receivedAt =
@@ -86,13 +100,14 @@ export function parseInquiryPatch(body: unknown): Partial<InquiryInput> {
   const data = body as Record<string, unknown>;
   const result: Partial<InquiryInput> = {};
 
-  if (data.name !== undefined) result.name = requireString(data.name, "氏名");
+  if (data.name !== undefined)
+    result.name = requireString(data.name, "氏名", MAX_LENGTHS.name);
   if (data.contact !== undefined)
-    result.contact = requireString(data.contact, "連絡先");
+    result.contact = requireString(data.contact, "連絡先", MAX_LENGTHS.contact);
   if (data.subject !== undefined)
-    result.subject = requireString(data.subject, "件名");
+    result.subject = requireString(data.subject, "件名", MAX_LENGTHS.subject);
   if (data.content !== undefined)
-    result.content = requireString(data.content, "内容");
+    result.content = requireString(data.content, "内容", MAX_LENGTHS.content);
   if (data.category !== undefined) result.category = parseCategory(data.category);
   if (data.status !== undefined) result.status = parseStatus(data.status);
   if (data.receivedAt !== undefined)

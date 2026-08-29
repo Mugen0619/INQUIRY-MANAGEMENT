@@ -3,10 +3,18 @@ import { prisma } from "@/lib/prisma";
 import { parseInquiryInput, ValidationError } from "@/lib/validation";
 
 export async function GET() {
-  const inquiries = await prisma.inquiry.findMany({
-    orderBy: { receivedAt: "desc" },
-  });
-  return NextResponse.json(inquiries);
+  try {
+    const inquiries = await prisma.inquiry.findMany({
+      orderBy: { receivedAt: "desc" },
+    });
+    return NextResponse.json(inquiries);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "問い合わせ一覧の取得に失敗しました。" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {

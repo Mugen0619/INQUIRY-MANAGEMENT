@@ -50,6 +50,16 @@ describe("GET /api/inquiries", () => {
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual(rows);
   });
+
+  it("Prismaでエラーが発生した場合は500を返す", async () => {
+    prismaMock.inquiry.findMany.mockRejectedValue(new Error("DB down"));
+
+    const res = await GET();
+
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("問い合わせ一覧の取得に失敗しました。");
+  });
 });
 
 describe("POST /api/inquiries", () => {

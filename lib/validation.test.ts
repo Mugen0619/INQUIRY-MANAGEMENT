@@ -82,6 +82,28 @@ describe("parseInquiryInput", () => {
     },
   );
 
+  it.each([
+    ["name", 100],
+    ["contact", 191],
+    ["subject", 191],
+    ["content", 5000],
+  ] as const)("%sが上限文字数を超える場合はValidationError", (field, maxLength) => {
+    expect(() =>
+      parseInquiryInput({ ...validBody, [field]: "あ".repeat(maxLength + 1) }),
+    ).toThrow(ValidationError);
+  });
+
+  it.each([
+    ["name", 100],
+    ["contact", 191],
+    ["subject", 191],
+    ["content", 5000],
+  ] as const)("%sが上限文字数ちょうどの場合は許可される", (field, maxLength) => {
+    expect(() =>
+      parseInquiryInput({ ...validBody, [field]: "あ".repeat(maxLength) }),
+    ).not.toThrow();
+  });
+
   it("statusが不正な値の場合はValidationError", () => {
     expect(() =>
       parseInquiryInput({ ...validBody, status: "UNKNOWN_STATUS" }),
@@ -135,6 +157,12 @@ describe("parseInquiryPatch", () => {
 
   it("nameが空文字の場合はValidationError", () => {
     expect(() => parseInquiryPatch({ name: "" })).toThrow(ValidationError);
+  });
+
+  it("nameが上限文字数を超える場合はValidationError", () => {
+    expect(() => parseInquiryPatch({ name: "あ".repeat(101) })).toThrow(
+      ValidationError,
+    );
   });
 
   it("receivedAtが不正な日時文字列の場合はValidationError", () => {
