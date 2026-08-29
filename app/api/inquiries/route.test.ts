@@ -19,6 +19,7 @@ const validBody = {
   contact: "test@example.com",
   subject: "件名",
   content: "内容",
+  category: "PRODUCT",
   status: "UNCONTACTED",
   receivedAt: "2026-01-01T10:00:00.000Z",
 };

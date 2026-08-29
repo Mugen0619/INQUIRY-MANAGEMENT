@@ -1,6 +1,12 @@
 "use client";
 
-import { Inquiry, InquiryStatus, STATUS_LABELS, STATUSES } from "@/lib/types";
+import {
+  CATEGORY_LABELS,
+  Inquiry,
+  InquiryStatus,
+  STATUS_LABELS,
+  STATUSES,
+} from "@/lib/types";
 
 function formatDateTime(isoString: string): string {
   return new Date(isoString).toLocaleString("ja-JP", {
@@ -36,7 +42,10 @@ export default function InquiryCard({
       onClick={onOpen}
       className="cursor-pointer rounded-md border border-zinc-200 bg-white p-3 shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
     >
-      <p className="font-medium text-zinc-900 dark:text-zinc-50">
+      <span className="inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+        {CATEGORY_LABELS[inquiry.category]}
+      </span>
+      <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-50">
         {inquiry.subject}
       </p>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">

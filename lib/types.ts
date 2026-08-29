@@ -8,12 +8,24 @@ export const STATUS_LABELS: Record<InquiryStatus, string> = {
   DONE: "完了",
 };
 
+export const CATEGORIES = ["SHIPPING", "PAYMENT", "PRODUCT", "OTHER"] as const;
+
+export type InquiryCategory = (typeof CATEGORIES)[number];
+
+export const CATEGORY_LABELS: Record<InquiryCategory, string> = {
+  SHIPPING: "配送について",
+  PAYMENT: "支払いについて",
+  PRODUCT: "商品について",
+  OTHER: "その他",
+};
+
 export type Inquiry = {
   id: number;
   name: string;
   contact: string;
   subject: string;
   content: string;
+  category: InquiryCategory;
   status: InquiryStatus;
   receivedAt: string;
   createdAt: string;
@@ -25,6 +37,15 @@ export type InquiryFormValues = {
   contact: string;
   subject: string;
   content: string;
+  category: InquiryCategory;
   status: InquiryStatus;
   receivedAt: string;
+};
+
+export type PublicInquiryFormValues = {
+  name: string;
+  contact: string;
+  subject: string;
+  content: string;
+  category: InquiryCategory;
 };

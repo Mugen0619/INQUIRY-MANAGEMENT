@@ -20,14 +20,22 @@ enum InquiryStatus {
   DONE
 }
 
+enum InquiryCategory {
+  SHIPPING
+  PAYMENT
+  PRODUCT
+  OTHER
+}
+
 model Inquiry {
-  id         Int           @id @default(autoincrement())
+  id         Int             @id @default(autoincrement())
   name       String
   contact    String
   subject    String
-  content    String        @db.Text
-  status     InquiryStatus @default(UNCONTACTED)
+  content    String          @db.Text
+  category   InquiryCategory @default(OTHER)
+  status     InquiryStatus   @default(UNCONTACTED)
   receivedAt DateTime
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 }
