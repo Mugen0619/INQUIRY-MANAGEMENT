@@ -19,6 +19,7 @@ const validBody = {
   contact: "test@example.com",
   subject: "件名",
   content: "内容",
+  category: "PRODUCT",
   status: "UNCONTACTED",
   receivedAt: "2026-01-01T10:00:00.000Z",
 };
@@ -48,6 +49,16 @@ describe("GET /api/inquiries", () => {
     });
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual(rows);
+  });
+
+  it("Prismaでエラーが発生した場合は500を返す", async () => {
+    prismaMock.inquiry.findMany.mockRejectedValue(new Error("DB down"));
+
+    const res = await GET();
+
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("問い合わせ一覧の取得に失敗しました。");
   });
 });
 

@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  CATEGORIES,
+  CATEGORY_LABELS,
   Inquiry,
   InquiryFormValues,
   InquiryStatus,
@@ -9,6 +12,33 @@ import {
 } from "@/lib/types";
 import StatusColumn from "./StatusColumn";
 import InquiryFormModal from "./InquiryFormModal";
+
+const CATEGORY_FILTER_ALL = "ALL" as const;
+type CategoryFilter = typeof CATEGORY_FILTER_ALL | (typeof CATEGORIES)[number];
+
+const SORT_OPTIONS = [
+  { value: "receivedAt_desc", label: "受付日時（新しい順）" },
+  { value: "receivedAt_asc", label: "受付日時（古い順）" },
+  { value: "name_asc", label: "氏名（昇順）" },
+] as const;
+type SortValue = (typeof SORT_OPTIONS)[number]["value"];
+
+function sortInquiries(inquiries: Inquiry[], sort: SortValue): Inquiry[] {
+  const sorted = [...inquiries];
+  switch (sort) {
+    case "receivedAt_asc":
+      return sorted.sort(
+        (a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime(),
+      );
+    case "name_asc":
+      return sorted.sort((a, b) => a.name.localeCompare(b.name, "ja"));
+    case "receivedAt_desc":
+    default:
+      return sorted.sort(
+        (a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime(),
+      );
+  }
+}
 
 async function parseErrorMessage(res: Response, fallback: string) {
   try {
@@ -20,6 +50,7 @@ async function parseErrorMessage(res: Response, fallback: string) {
 }
 
 export default function Board() {
+  const router = useRouter();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -27,6 +58,9 @@ export default function Board() {
     { mode: "create" } | { mode: "edit"; inquiry: Inquiry } | null
   >(null);
   const [draggedId, setDraggedId] = useState<number | null>(null);
+  const [categoryFilter, setCategoryFilter] =
+    useState<CategoryFilter>(CATEGORY_FILTER_ALL);
+  const [sort, setSort] = useState<SortValue>("receivedAt_desc");
 
   const loadInquiries = async () => {
     setLoading(true);
@@ -51,6 +85,14 @@ export default function Board() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 初回データ取得のため、マウント時にloadInquiriesを実行する
     loadInquiries();
   }, []);
+
+  const visibleInquiries = useMemo(() => {
+    const filtered =
+      categoryFilter === CATEGORY_FILTER_ALL
+        ? inquiries
+        : inquiries.filter((i) => i.category === categoryFilter);
+    return sortInquiries(filtered, sort);
+  }, [inquiries, categoryFilter, sort]);
 
   const handleCreate = async (values: InquiryFormValues) => {
     const res = await fetch("/api/inquiries", {
@@ -121,19 +163,66 @@ export default function Board() {
     }
   };
 
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/admin/login");
+    router.refresh();
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-          問い合わせ管理
+          問い合わせ管理（管理者）
         </h1>
-        <button
-          type="button"
-          onClick={() => setModal({ mode: "create" })}
-          className="rounded bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
-          + 新規登録
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setModal({ mode: "create" })}
+            className="rounded bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          >
+            + 新規登録
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            ログアウト
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+          カテゴリ
+          <select
+            className="rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as CategoryFilter)}
+          >
+            <option value={CATEGORY_FILTER_ALL}>すべて</option>
+            {CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {CATEGORY_LABELS[category]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+          並び替え
+          <select
+            className="rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortValue)}
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {loading && (
@@ -158,7 +247,7 @@ export default function Board() {
             <StatusColumn
               key={status}
               status={status}
-              inquiries={inquiries.filter((i) => i.status === status)}
+              inquiries={visibleInquiries.filter((i) => i.status === status)}
               onOpen={(inquiry) => setModal({ mode: "edit", inquiry })}
               onMove={handleMove}
               onDragStart={handleDragStart}

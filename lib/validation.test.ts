@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { parseInquiryInput, parseInquiryPatch, ValidationError } from "@/lib/validation";
 
 const validBody = {
@@ -6,6 +6,7 @@ const validBody = {
   contact: "test@example.com",
   subject: "件名",
   content: "内容",
+  category: "PRODUCT",
   status: "IN_PROGRESS",
   receivedAt: "2026-01-01T10:00:00.000Z",
 };
@@ -18,6 +19,7 @@ describe("parseInquiryInput", () => {
       contact: "test@example.com",
       subject: "件名",
       content: "内容",
+      category: "PRODUCT",
       status: "IN_PROGRESS",
       receivedAt: new Date("2026-01-01T10:00:00.000Z"),
     });
@@ -28,6 +30,23 @@ describe("parseInquiryInput", () => {
     delete rest.status;
     const result = parseInquiryInput(rest);
     expect(result.status).toBe("UNCONTACTED");
+  });
+
+  it("categoryが省略された場合はOTHERになる", () => {
+    const rest: Record<string, unknown> = { ...validBody };
+    delete rest.category;
+    const result = parseInquiryInput(rest);
+    expect(result.category).toBe("OTHER");
+  });
+
+  it("receivedAtが省略された場合は現在時刻になる（公開フォームからの送信を想定）", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-01T00:00:00.000Z"));
+    const rest: Record<string, unknown> = { ...validBody };
+    delete rest.receivedAt;
+    const result = parseInquiryInput(rest);
+    expect(result.receivedAt).toEqual(new Date("2026-03-01T00:00:00.000Z"));
+    vi.useRealTimers();
   });
 
   it("bodyがオブジェクトでない場合はValidationError", () => {
@@ -63,9 +82,37 @@ describe("parseInquiryInput", () => {
     },
   );
 
+  it.each([
+    ["name", 100],
+    ["contact", 191],
+    ["subject", 191],
+    ["content", 5000],
+  ] as const)("%sが上限文字数を超える場合はValidationError", (field, maxLength) => {
+    expect(() =>
+      parseInquiryInput({ ...validBody, [field]: "あ".repeat(maxLength + 1) }),
+    ).toThrow(ValidationError);
+  });
+
+  it.each([
+    ["name", 100],
+    ["contact", 191],
+    ["subject", 191],
+    ["content", 5000],
+  ] as const)("%sが上限文字数ちょうどの場合は許可される", (field, maxLength) => {
+    expect(() =>
+      parseInquiryInput({ ...validBody, [field]: "あ".repeat(maxLength) }),
+    ).not.toThrow();
+  });
+
   it("statusが不正な値の場合はValidationError", () => {
     expect(() =>
       parseInquiryInput({ ...validBody, status: "UNKNOWN_STATUS" }),
+    ).toThrow(ValidationError);
+  });
+
+  it("categoryが不正な値の場合はValidationError", () => {
+    expect(() =>
+      parseInquiryInput({ ...validBody, category: "UNKNOWN_CATEGORY" }),
     ).toThrow(ValidationError);
   });
 
@@ -73,12 +120,6 @@ describe("parseInquiryInput", () => {
     expect(() =>
       parseInquiryInput({ ...validBody, receivedAt: "not-a-date" }),
     ).toThrow(ValidationError);
-  });
-
-  it("receivedAtが欠落している場合はValidationError", () => {
-    const rest: Record<string, unknown> = { ...validBody };
-    delete rest.receivedAt;
-    expect(() => parseInquiryInput(rest)).toThrow(ValidationError);
   });
 });
 
@@ -103,8 +144,25 @@ describe("parseInquiryPatch", () => {
     );
   });
 
+  it("categoryが不正な値の場合はValidationError", () => {
+    expect(() => parseInquiryPatch({ category: "INVALID" })).toThrow(
+      ValidationError,
+    );
+  });
+
+  it("categoryを指定すると差分に反映される", () => {
+    const result = parseInquiryPatch({ category: "SHIPPING" });
+    expect(result).toEqual({ category: "SHIPPING" });
+  });
+
   it("nameが空文字の場合はValidationError", () => {
     expect(() => parseInquiryPatch({ name: "" })).toThrow(ValidationError);
+  });
+
+  it("nameが上限文字数を超える場合はValidationError", () => {
+    expect(() => parseInquiryPatch({ name: "あ".repeat(101) })).toThrow(
+      ValidationError,
+    );
   });
 
   it("receivedAtが不正な日時文字列の場合はValidationError", () => {

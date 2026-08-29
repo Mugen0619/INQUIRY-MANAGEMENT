@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import {
+  CATEGORIES,
+  CATEGORY_LABELS,
   Inquiry,
   InquiryFormValues,
   STATUS_LABELS,
@@ -39,6 +41,7 @@ export default function InquiryFormModal({
     contact: initial?.contact ?? "",
     subject: initial?.subject ?? "",
     content: initial?.content ?? "",
+    category: initial?.category ?? "OTHER",
     status: initial?.status ?? "UNCONTACTED",
     receivedAt: initial ? toDatetimeLocal(initial.receivedAt) : nowAsDatetimeLocal(),
   });
@@ -121,6 +124,20 @@ export default function InquiryFormModal({
               onChange={handleChange("content")}
               required
             />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
+            カテゴリ
+            <select
+              className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              value={values.category}
+              onChange={handleChange("category")}
+            >
+              {CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {CATEGORY_LABELS[category]}
+                </option>
+              ))}
+            </select>
           </label>
           <div className="flex gap-3">
             <label className="flex flex-1 flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
