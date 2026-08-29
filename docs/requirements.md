@@ -25,15 +25,20 @@
 | 項目 | 型 | 説明 |
 |---|---|---|
 | id | Int（自動採番） | 主キー |
-| name | String | 氏名 |
-| contact | String | 連絡先（メールまたは電話。自由入力） |
-| subject | String | 件名 |
-| content | String（Text） | 内容 |
+| name | String | 氏名（最大100文字） |
+| contact | String | 連絡先（メールまたは電話。自由入力、最大191文字） |
+| subject | String | 件名（最大191文字） |
+| content | String（Text） | 内容（最大5000文字） |
 | category | Enum（SHIPPING / PAYMENT / PRODUCT / OTHER） | カテゴリ（配送について／支払いについて／商品について／その他） |
 | status | Enum（UNCONTACTED / IN_PROGRESS / DONE） | ステータス（未対応／対応中／完了） |
 | receivedAt | DateTime | 受付日時（公開フォームからの送信時は送信時刻を自動設定） |
 | createdAt | DateTime | 作成日時（自動） |
 | updatedAt | DateTime | 更新日時（自動） |
+
+contact/subjectの文字数上限（191文字）は、MySQLの`VARCHAR`列のデフォルト長（191）を
+超えないようにするためのもの。nameの上限（100文字）は氏名として妥当な長さとして設定した。
+いずれも、`POST /api/inquiries`が未認証で呼び出せることを踏まえ、過大なペイロードの
+送信を防ぐ目的を兼ねる。
 
 ## 5. 画面
 
@@ -83,7 +88,7 @@
   Cookieの値を再計算した期待値と比較し、一致しない場合はページなら `/admin/login` へリダイレクト、
   APIなら401を返す
 - セッションは環境変数のみから導出され、サーバー側でセッションを保存するストレージを持たない
-  （ステートレス。Cookie自体の有効期限で失効する）
+  （ステートレス。Cookie自体の有効期限（7日間）で失効する）
 
 ### なぜNextAuth.js等のライブラリを使わなかったか
 今回の認証要件は「管理者パスワードが1つだけ」という非常にシンプルなものであり、
