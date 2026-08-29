@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BASE_PATH } from "@/lib/basePath";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -66,7 +67,7 @@ export default function Board() {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch("/api/inquiries");
+      const res = await fetch(`${BASE_PATH}/api/inquiries`);
       if (!res.ok) {
         throw new Error(await parseErrorMessage(res, "一覧の取得に失敗しました。"));
       }
@@ -95,7 +96,7 @@ export default function Board() {
   }, [inquiries, categoryFilter, sort]);
 
   const handleCreate = async (values: InquiryFormValues) => {
-    const res = await fetch("/api/inquiries", {
+    const res = await fetch(`${BASE_PATH}/api/inquiries`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
@@ -109,7 +110,7 @@ export default function Board() {
   };
 
   const handleUpdate = async (id: number, values: Partial<InquiryFormValues>) => {
-    const res = await fetch(`/api/inquiries/${id}`, {
+    const res = await fetch(`${BASE_PATH}/api/inquiries/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
@@ -128,7 +129,7 @@ export default function Board() {
   };
 
   const handleDelete = async (id: number) => {
-    const res = await fetch(`/api/inquiries/${id}`, { method: "DELETE" });
+    const res = await fetch(`${BASE_PATH}/api/inquiries/${id}`, { method: "DELETE" });
     if (!res.ok && res.status !== 204) {
       throw new Error(await parseErrorMessage(res, "削除に失敗しました。"));
     }
@@ -164,7 +165,7 @@ export default function Board() {
   };
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch(`${BASE_PATH}/api/auth/logout`, { method: "POST" });
     router.push("/admin/login");
     router.refresh();
   };

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { CATEGORIES, CATEGORY_LABELS, PublicInquiryFormValues } from "@/lib/types";
+import { BASE_PATH } from "@/lib/basePath";
 
 const initialValues: PublicInquiryFormValues = {
   name: "",
@@ -39,7 +40,7 @@ export default function PublicInquiryForm() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch("/api/inquiries", {
+      const res = await fetch(`${BASE_PATH}/api/inquiries`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),

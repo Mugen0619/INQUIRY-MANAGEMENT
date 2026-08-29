@@ -117,9 +117,27 @@ ADMIN_PASSWORD="change-me"
   - よくある質問の再問い合わせを減らす目的
   - 実装する場合、Inquiryに「公開する回答」を紐づける項目（例: publishedAnswer, isPublished）の追加を検討する
 
-## 12. デプロイ方針（参考・今回は対象外）
-将来デプロイする際は以下を予定。今回は実装に集中するが、環境変数を通じて
-本番構成に切り替えやすい作りにしておく。
-- EC2は新規に用意せず、TASKMANAGEMENTが稼働中の既存EC2インスタンスに同居（ポートまたはパスで振り分け）
-- RDSは、既存PostgreSQL用インスタンスとは別に、MySQL用の新しいインスタンスを用意
-- 実際のインフラ変更（EC2セキュリティグループ・ポート開放など）はTASKMANAGEMENT側のインフラ用チャットで実施
+## 12. デプロイ方針
+TASKMANAGEMENT用の既存EC2（t3.micro）に同居させる形でデプロイする。PostgreSQL RDSが
+無料利用枠をほぼ使い切っているため、新しいRDSは作らず、MySQLも同じEC2上のDockerコンテナ
+として動かす。新しいAWSリソース（RDS・セキュリティグループ等、追加費用が発生するもの）は
+一切作成しない。
+
+- **ルーティング**: パスベース（`/inquiries`配下）。EC2のセキュリティグループはポート80のみ
+  公開・ポート22は自分のIP限定という現状を変えないため、新しいポート開放は行わない
+- **basePath**: `next.config.ts`で`NEXT_PUBLIC_BASE_PATH`環境変数から`basePath`を設定し、
+  TASKMANAGEMENT側nginxの`location /inquiries/`でこのアプリのコンテナへリバースプロキシする
+- **ネットワーク**: TASKMANAGEMENTとINQUIRY-MANAGEMENTのdocker-composeスタックは分離したまま、
+  EC2上に作成する外部Dockerネットワーク（`shared_net`）経由で疎通させる。ホストへの新規
+  ポート公開は行わない
+- **DB接続**: MySQLコンテナはホストにポートを公開せず、`shared_net`内で`mysql`という
+  サービス名でこのアプリのコンテナからのみ到達可能にする
+- **マイグレーション**: 本番では`prisma migrate deploy`を使う（`prisma migrate dev`は
+  シャドウDB作成のため広いDB権限を要求するが、`migrate deploy`は不要）
+- **メモリ**: t3.micro（メモリ1GB）でbackend/frontend/mysql/inquiry-appの4コンテナが
+  同時稼働するため、mysql（`innodb-buffer-pool-size=64M`等）・inquiry-app
+  （`NODE_OPTIONS=--max-old-space-size=192`）にメモリ抑制設定を入れている
+- **EC2・RDSのTerraform構成自体は変更しない**: `ec2.tf`・`security_group.tf`・`rds.tf`・
+  `user_data.sh.tpl`は変更せず、アプリ層（docker-compose・nginx設定）の追加のみで対応する
+- 本番用の構成ファイルは`Dockerfile`・`docker-compose.prod.yml`（このリポジトリ）と、
+  TASKMANAGEMENT側の`frontend/nginx.conf`（別リポジトリ、別途対応）
