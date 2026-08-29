@@ -97,8 +97,9 @@ DATABASE_URL="mysql://inquiry_user:inquiry_password@localhost:3306/inquiry_manag
 ADMIN_PASSWORD="change-me"
 ```
 
-本番環境ではこれらの値を実際のRDS（MySQL）エンドポイントや、推測されにくいパスワードに
-差し替えるだけで切り替えられるようにしています。
+本番環境では接続先を実際の本番用MySQL（後述の通り、既存EC2上のDockerコンテナとして構成。
+新しいRDSは作成しない）や、推測されにくいパスワードに差し替えるだけで切り替えられるように
+しています。本番用の環境変数一式は「本番デプロイ」章の `.env.prod.example` を参照してください。
 
 ### 3. MySQLの起動（Docker）
 
@@ -181,8 +182,11 @@ TASKMANAGEMENT用の既存EC2（t3.micro）に、`/inquiries`配下のパスと�
   せず、外部Dockerネットワーク`shared_net`（EC2上で`docker network create shared_net`
   しておく）経由でTASKMANAGEMENT側nginxからのみアクセスさせる
 - `.env.prod.example`を参考に、EC2上に`.env`（`MYSQL_DATABASE`・`MYSQL_USER`・
-  `MYSQL_PASSWORD`・`MYSQL_ROOT_PASSWORD`・`ADMIN_PASSWORD`）を作成し、
+  `MYSQL_PASSWORD`・`MYSQL_ROOT_PASSWORD`・`ADMIN_PASSWORD`・`COOKIE_SECURE`）を作成し、
   `docker compose -f docker-compose.prod.yml up -d --build`で起動します
+  （`COOKIE_SECURE`は現状HTTPS未対応のため`false`のままにし、HTTPS化した際に`true`へ
+  変更してください。`true`のままHTTPで運用するとセッションCookieが送信されずログイン
+  できなくなります）
 - basePath（`/inquiries`）はビルド時に`NEXT_PUBLIC_BASE_PATH`をDockerビルド引数として
   渡すことでクライアント側にも反映されます（`docker-compose.prod.yml`で設定済み）
 - TASKMANAGEMENT側（`frontend/nginx.conf`への`location /inquiries/`追加、

@@ -43,6 +43,9 @@ services:
     environment:
       DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # HTTPS化するまではfalseのまま。trueにするとHTTP接続でセッションCookieが
+      # 送信されずログインできなくなるため、HTTPS化と同時に変更すること
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       NEXT_PUBLIC_BASE_PATH: /inquiries
       NODE_OPTIONS: --max-old-space-size=192
       NODE_ENV: production
