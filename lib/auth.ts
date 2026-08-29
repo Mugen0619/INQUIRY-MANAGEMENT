@@ -48,7 +48,11 @@ export async function isValidSessionToken(
 export const SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  // NODE_ENV=productionかどうかではなく、実際にHTTPSで配信されているかどうかで判定する。
+  // 本番デプロイ(TASKMANAGEMENT用EC2への同居)は現状HTTPSではないため、
+  // NODE_ENVだけで判定するとSecure Cookieがブラウザに保存・送信されず
+  // ログインセッションが機能しなくなる。HTTPS化した際はCOOKIE_SECURE=trueを設定する。
+  secure: process.env.COOKIE_SECURE === "true",
   path: "/",
   maxAge: SESSION_MAX_AGE_SECONDS,
 };
