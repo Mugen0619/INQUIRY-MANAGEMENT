@@ -1,0 +1,58 @@
+# TASKMANAGEMENT用EC2への同居デプロイ用構成。
+# ホストへのポート公開はせず、外部Dockerネットワーク shared_net 経由で
+# TASKMANAGEMENT側nginx(frontendコンテナ)からのみアクセスさせる
+# (新しいセキュリティグループ・ポート開放は不要)。
+# shared_netはデプロイ手順の中で事前に`docker network create shared_net`しておくこと。
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: inquiry-management-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    # t3.micro(メモリ1GB)でbackend/frontend/mysql/inquiry-appを同時稼働させるための抑制設定
+    command:
+      - --innodb-buffer-pool-size=64M
+      - --max-connections=20
+      - --performance-schema=OFF
+    mem_limit: 220m
+    volumes:
+      - inquiry-management-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - shared_net
+
+  inquiry-app:
+    build:
+      context: .
+      args:
+        # クライアントバンドルに埋め込むためビルド時に渡す必要がある
+        NEXT_PUBLIC_BASE_PATH: /inquiries
+    container_name: inquiry-management-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      NEXT_PUBLIC_BASE_PATH: /inquiries
+      NODE_OPTIONS: --max-old-space-size=192
+      NODE_ENV: production
+    mem_limit: 260m
+    networks:
+      - shared_net
+
+networks:
+  shared_net:
+    external: true
+
+volumes:
+  inquiry-management-mysql-data:

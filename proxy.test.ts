@@ -99,4 +99,21 @@ describe("proxy", () => {
       expect(res.status).toBe(200);
     });
   });
+
+  describe("basePath配下へのデプロイ時の挙動", () => {
+    // Next.jsは実際のリクエスト処理でbasePathをpathnameから取り除いたうえでproxyを
+    // 呼び出す(nextUrl.pathnameはbasePath除去後、nextUrl.basePathに元のprefixが入る)。
+    // ここではその状態を直接再現し、リダイレクト先にbasePathが正しく付与されることを確認する
+    // (NextResponse.redirectはnext/linkと違いbasePathを自動付与しないため、以前実際に
+    // /admin/loginへリダイレクトしてしまう不具合があった)。
+    it("/adminへのリダイレクト先にbasePathが付与される", async () => {
+      const request = requestWithCookie("http://localhost/admin");
+      request.nextUrl.basePath = "/inquiries";
+      const res = await proxy(request);
+      expect(res.status).toBe(307);
+      expect(res.headers.get("location")).toBe(
+        "http://localhost/inquiries/admin/login",
+      );
+    });
+  });
 });

@@ -33,7 +33,12 @@ export async function proxy(request: NextRequest) {
   if (isAdminPage && !isLoginPage) {
     const authed = await isValidSessionToken(token);
     if (!authed) {
-      return NextResponse.redirect(new URL(ADMIN_LOGIN_PATH, request.url));
+      // NextResponse.redirectはnext/linkと違いbasePathを自動付与しないため、明示的に付与する
+      const loginUrl = new URL(
+        `${request.nextUrl.basePath}${ADMIN_LOGIN_PATH}`,
+        request.url,
+      );
+      return NextResponse.redirect(loginUrl);
     }
   }
 
@@ -41,5 +46,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/inquiries", "/api/inquiries/:path*"],
+  // basePath("/inquiries")配下にデプロイした場合、config.matcherは静的解析されるため
+  // basePathを考慮したパスマッチができない(request.nextUrl.pathnameはbasePath除去後の
+  // 値になる一方、matcherは元のURLに対して評価される)。そのため、matcherでは
+  // 静的アセット等の明らかに無関係なパスのみ除外し、実際の保護対象の判定は
+  // proxy関数内のpathnameで行う。
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

@@ -53,7 +53,9 @@ prisma/
   seed.ts                        サンプルデータ投入スクリプト
 docs/
   requirements.md                 要件定義書
-docker-compose.yml                MySQL用のDocker Compose定義
+docker-compose.yml                ローカル開発用MySQLのDocker Compose定義
+docker-compose.prod.yml           本番デプロイ用(mysql・inquiry-appコンテナ)
+Dockerfile                        本番用Dockerイメージ定義
 ```
 
 ## 起動方法
@@ -151,11 +153,36 @@ npm test
 - 未認証で呼び出せる新規登録APIに文字数上限を超えるデータを送ると400で拒否され、上限
   ちょうどの文字数では登録できること（`docs/requirements.md` の「4. データモデル」参照）
 - 一覧取得APIでエラーが発生した場合、他のAPIと同様のJSON形式でエラーが返ること
+- `docker build`で本番用イメージがビルドでき、`docker compose -f docker-compose.prod.yml`
+  で起動したコンテナが`prisma migrate deploy`の実行を含めて正常に起動すること
+- basePath（`/inquiries`）配下でも、公開フォームの送信・管理者ログイン・カンバン表示・
+  ログアウトがブラウザ操作で正常に動作すること（Playwrightで確認）
+
+## 本番デプロイ(TASKMANAGEMENT用EC2への同居)
+
+TASKMANAGEMENT用の既存EC2（t3.micro）に、`/inquiries`配下のパスとしてこのアプリを
+同居させる構成です。新しいAWSリソース（RDS・セキュリティグループ等）は作成しません。
+詳細な方針は [docs/requirements.md](docs/requirements.md) の「12. デプロイ方針」を
+参照してください。
+
+- `Dockerfile`: マルチステージビルド。起動時に`prisma migrate deploy`を実行してから
+  `next start`する
+- `docker-compose.prod.yml`: `mysql`・`inquiry-app`の2サービス。ホストへのポート公開は
+  せず、外部Dockerネットワーク`shared_net`（EC2上で`docker network create shared_net`
+  しておく）経由でTASKMANAGEMENT側nginxからのみアクセスさせる
+- `.env.prod.example`を参考に、EC2上に`.env`（`MYSQL_DATABASE`・`MYSQL_USER`・
+  `MYSQL_PASSWORD`・`MYSQL_ROOT_PASSWORD`・`ADMIN_PASSWORD`）を作成し、
+  `docker compose -f docker-compose.prod.yml up -d --build`で起動します
+- basePath（`/inquiries`）はビルド時に`NEXT_PUBLIC_BASE_PATH`をDockerビルド引数として
+  渡すことでクライアント側にも反映されます（`docker-compose.prod.yml`で設定済み）
+- TASKMANAGEMENT側（`frontend/nginx.conf`への`location /inquiries/`追加、
+  `docker-compose.prod.yml`でのネットワーク参加）は別リポジトリで別途対応します
 
 ## 今回のスコープ外
 
 - カテゴリ別に問い合わせと回答を一般公開するQ&Aページ（今後の展望として
   [docs/requirements.md](docs/requirements.md) に記載）
 - メール通知機能
-- 本番環境へのデプロイ
+- 独自ドメイン取得・HTTPS化
 - 管理者の複数アカウント対応・ロール管理
+- 新しいRDSインスタンスの作成（既存EC2上のDockerコンテナでMySQLを構成する方針のため）

@@ -2,6 +2,7 @@
 
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { BASE_PATH } from "@/lib/basePath";
 
 async function parseErrorMessage(res: Response, fallback: string) {
   try {
@@ -24,7 +25,7 @@ function LoginForm() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(`${BASE_PATH}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
