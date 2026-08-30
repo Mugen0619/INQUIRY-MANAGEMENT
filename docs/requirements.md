@@ -134,7 +134,10 @@ TASKMANAGEMENT用の既存EC2（t3.micro）に同居させる形でデプロイ�
 - **ルーティング**: パスベース（`/inquiries`配下）。EC2のセキュリティグループはポート80のみ
   公開・ポート22は自分のIP限定という現状を変えないため、新しいポート開放は行わない
 - **basePath**: `next.config.ts`で`NEXT_PUBLIC_BASE_PATH`環境変数から`basePath`を設定し、
-  TASKMANAGEMENT側nginxの`location /inquiries/`でこのアプリのコンテナへリバースプロキシする
+  TASKMANAGEMENT側nginxの`location /inquiries`でこのアプリのコンテナへリバースプロキシする
+  （Next.js自身が`/inquiries/`→`/inquiries`へ308リダイレクトするため、nginx側は末尾
+  スラッシュなしのプレフィックスマッチにしている。末尾スラッシュ付きにすると無限
+  リダイレクトになる）
 - **ネットワーク**: TASKMANAGEMENTとINQUIRY-MANAGEMENTのdocker-composeスタックは分離したまま、
   EC2上に作成する外部Dockerネットワーク（`shared_net`）経由で疎通させる。ホストへの新規
   ポート公開は行わない
