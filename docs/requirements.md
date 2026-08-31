@@ -15,11 +15,14 @@
 - 管理者（問い合わせ対応を1人で管理したい人）: パスワードでログインした人のみ
 
 ## 3. 技術スタック
-- フロントエンド・バックエンド: Next.js（TypeScript、App Router）
+- フロントエンド・バックエンド: Next.js 16.3.3（TypeScript 5系、React 19.2.8、App Router）
   - バックエンド機能は Route Handlers（`app/api/**/route.ts`）で実装し、別フレームワークは使わない
   - 認証保護は Next.js の Proxy（旧Middleware。`proxy.ts`）で実装
-- データベース: MySQL（Docker で用意）
-- ORM: Prisma
+- データベース: MySQL 8.0（Docker で用意）
+- ORM: Prisma 6.19.3
+- 実行環境: Node.js 20系
+
+バージョンは `package.json`・`docker-compose.yml` を正とする（更新時はこの節も合わせて見直す）。
 
 ## 4. データモデル（Inquiry）
 | 項目 | 型 | 説明 |
